@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Powered PDF Analyzer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            text-align: center;
+            padding: 50px;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            max-width: 700px;
+            margin: auto;
+        }
+        h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .file-input {
+            display: none;
+        }
+        .upload-label {
+            display: inline-block;
+            background: #fff;
+            color: #333;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s ease;
+        }
+        .upload-label:hover {
+            background: #ddd;
+        }
+        .file-name {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #ffeb3b;
+        }
+        .btn {
+            background: #ff9800;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+            transition: 0.3s;
+        }
+        .btn:hover {
+            background: #e68900;
+        }
+        .loader {
+            display: none;
+            margin: 20px auto;
+            border: 4px solid #fff;
+            border-top: 4px solid #ff9800;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .table-container {
+            margin-top: 30px;
+        }
+        .table th {
+            background-color: #444;
+            color: #fff;
+        }
+        .table td.for {
+            background-color: rgba(0, 255, 0, 0.2);
+            color: #00ff00;
+        }
+        .table td.against {
+            background-color: rgba(255, 0, 0, 0.2);
+            color: #ff0000;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2><i class="fas fa-file-pdf"></i> Upload a PDF for AI Analysis</h2>
+        
+        <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data">
+            <input type="file" id="fileInput" name="file" class="file-input" accept="application/pdf" required>
+            <label for="fileInput" class="upload-label"><i class="fas fa-upload"></i> Choose a PDF</label>
+            <p class="file-name" id="fileName">No file chosen</p>
+            
+            <button type="submit" class="btn"><i class="fas fa-file-alt"></i> Analyze PDF</button>
+        </form>
+        
+        <div class="loader" id="loader"></div>
+    </div>
+
+    <div class="container table-container" id="resultContainer" style="display:none;">
+        <h3>Analysis Result</h3>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Page</th>
+                    <th>For</th>
+                    <th>Against</th>
+                </tr>
+            </thead>
+            <tbody id="resultTableBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        document.getElementById("fileInput").addEventListener("change", function () {
+            let fileName = this.files[0] ? this.files[0].name : "No file chosen";
+            document.getElementById("fileName").textContent = fileName;
+        });
+
+        document.getElementById("uploadForm").addEventListener("submit", function (event) {
+            event.preventDefault();
+            document.getElementById("loader").style.display = "block";  
+            
+            let formData = new FormData(this);
+            
+            fetch("/upload", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("loader").style.display = "none";
+                document.getElementById("resultContainer").style.display = "block";
+                
+                let tableBody = document.getElementById("resultTableBody");
+                tableBody.innerHTML = "";
+
+                let maxRows = Math.max(data.arguments_for.length, data.arguments_against.length);
+                
+                for (let i = 0; i < maxRows; i++) {
+                    let row = document.createElement("tr");
+                    
+                    let pageCell = document.createElement("td");
+                    pageCell.textContent = data.arguments_for[i]?.page || data.arguments_against[i]?.page || "-";
+                    
+                    let forCell = document.createElement("td");
+                    forCell.textContent = data.arguments_for[i]?.argument || "-";
+                    forCell.classList.add("for");
+
+                    let againstCell = document.createElement("td");
+                    againstCell.textContent = data.arguments_against[i]?.argument || "-";
+                    againstCell.classList.add("against");
+
+                    row.appendChild(pageCell);
+                    row.appendChild(forCell);
+                    row.appendChild(againstCell);
+
+                    tableBody.appendChild(row);
+                }
+            })
+            .catch(error => console.error("Error:", error));
+        });
+    </script>
+
+</body>
+</html>
